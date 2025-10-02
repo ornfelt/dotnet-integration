@@ -401,6 +401,19 @@ public class CheckOutController : Controller
         return View();
     }
 
+    // TODO: fix PDF for Norway
+    [HttpGet]
+    public IActionResult GetCreditAgreementPdf(string paymentOption, string country)
+    {
+        // TODO: locate the proper PDF bytes for NO + Invoice
+        // This is just a placeholder demonstrating returning a PDF.
+        // byte[] pdfBytes = System.IO.File.ReadAllBytes("wwwroot/pdfs/kredittavtale_no.pdf");
+        // return File(pdfBytes, "application/pdf", "kredittavtale.pdf");
+
+        // For now, return 404 if you haven't wired it yet:
+        return NotFound();
+    }
+
     // Helpers
     private void SaveTempData()
     {
