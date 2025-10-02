@@ -1,4 +1,6 @@
-﻿@{
+﻿@using Sample.AspNetCore.Webpay
+@using Webpay.Integration.Util.Constant
+@{
     ViewData["Title"] = "Checkout";
     var isCompany = TempData["IsCompany"] != null && Convert.ToBoolean(TempData["IsCompany"]);
 
@@ -51,6 +53,21 @@
     var isVisible = TempData["IsTestCustomersVisible"] == null ? true : TempData["IsTestCustomersVisible"].ToString()?.ToLower() == "true";
     var useBankID = TempData["UseBankID"] != null ? Convert.ToBoolean(TempData["UseBankID"]) : false;
     var useKalp = TempData["UseKalp"] != null ? Convert.ToBoolean(TempData["UseKalp"]) : false;
+
+    var config = new WebpayConfig();
+    var countryCode = country.GetCountryCode();
+    var wsEndPoint = config.GetEndPoint(PaymentType.INVOICE);
+    var asEndPoint = config.GetEndPoint(PaymentType.ADMIN_TYPE);
+    var webpayConfigVisible = false;
+
+    var approvedPrivate = testCustomers.FirstOrDefault(x => x.Result == "Approved" && x.CustomerType == "Private");
+    var approvedCompany = testCustomers.FirstOrDefault(x => x.Result == "Approved" && x.CustomerType == "Company");
+    var privateSSN = approvedPrivate != null ? approvedPrivate.PersonOrOrgNr : "";
+    var companySSN = approvedCompany != null ? approvedCompany.PersonOrOrgNr : "";
+    var ssnPlaceholder = isCompany ? companySSN : privateSSN;
+    
+    var emailPlaceholder = "test@svea.com";
+    var phonePlaceholder = "01111111";
 }
 
 <div class="container mt-4">
@@ -81,6 +98,73 @@
         </div>
     </div>
 
+    <button id="toggleWebpayConfig" class="btn btn-sm btn-secondary mt-4">
+        Webpay Config
+    </button>
+
+    <div id="webpayConfig" class="card mt-2" style="display:@(webpayConfigVisible ? "block" : "none");">
+        <div class="card-header">
+            Webpay Config Settings (Country: @country)
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr>
+                        <th colspan="5" class="text-center" style="padding-top:15px;">Credentials</th>
+                    </tr>
+                    <tr>
+                        <th>Payment Type</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Client Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Invoice</td>
+                        <td>@config.GetUsername(PaymentType.INVOICE, countryCode)</td>
+                        <td>@config.GetPassword(PaymentType.INVOICE, countryCode)</td>
+                        <td>@config.GetClientNumber(PaymentType.INVOICE, countryCode)</td>
+                    </tr>
+                    <tr>
+                        <td>PaymentPlan</td>
+                        <td>@config.GetUsername(PaymentType.PAYMENTPLAN, countryCode)</td>
+                        <td>@config.GetPassword(PaymentType.PAYMENTPLAN, countryCode)</td>
+                        <td>@config.GetClientNumber(PaymentType.PAYMENTPLAN, countryCode)</td>
+                    </tr>
+                    @if (countryCode == CountryCode.SE)
+                    {
+                        <tr>
+                            <td>AccountCredit</td>
+                            <td>@config.GetUsername(PaymentType.ACCOUNTCREDIT, countryCode)</td>
+                            <td>@config.GetPassword(PaymentType.ACCOUNTCREDIT, countryCode)</td>
+                            <td>@config.GetClientNumber(PaymentType.ACCOUNTCREDIT, countryCode)</td>
+                        </tr>
+                    }
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="5" class="text-center" style="padding-top:15px;">Endpoints</th>
+                    </tr>
+                    <tr>
+                        <th>Service</th>
+                        <th colspan="4">URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>WebService</td>
+                        <td colspan="4">@wsEndPoint</td>
+                    </tr>
+                    <tr>
+                        <td>AdminService</td>
+                        <td colspan="4">@asEndPoint</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="use-bankid-container" style="margin-top: 20px; margin-bottom: 20px;">
         <form id="toggleBankIDForm" method="post" action="/CheckOut/UpdateUseBankID">
             <div class="form-check">
@@ -106,7 +190,7 @@
         <form asp-action="SubmitForm" method="post">
             <div class="mb-3">
                 <label for="ssn" class="form-label">SSN</label>
-                <input type="text" id="ssn" name="SSN" class="form-control" required />
+                <input type="text" id="ssn" name="SSN" class="form-control" placeholder="@ssnPlaceholder" data-private-placeholder="@privateSSN" data-company-placeholder="@companySSN" required />
             </div>
             <div class="form-check mb-3">
                 <input type="checkbox" id="isCompany" name="IsCompany" class="form-check-input" value="true" />
@@ -166,11 +250,11 @@
             <form asp-action="FinalizeForm" method="post">
                 <div class="mb-3">
                     <label for="phoneNumber" class="form-label">Phone Number</label>
-                    <input type="text" id="phoneNumber" name="PhoneNumber" class="form-control" required />
+                    <input type="text" id="phoneNumber" name="PhoneNumber" class="form-control" placeholder="@phonePlaceholder" required />
                 </div>
                 <div class="mb-3">
                     <label for="emailAddress" class="form-label">Email Address</label>
-                    <input type="email" id="emailAddress" name="EmailAddress" class="form-control" required />
+                    <input type="email" id="emailAddress" name="EmailAddress" class="form-control" placeholder="@emailPlaceholder" required />
                 </div>
                 <div class="mb-3">
                     <label for="paymentOption" class="form-label">Payment Option</label>
@@ -179,7 +263,10 @@
                         @if (!isCompany)
                         {
                             <option value="PaymentPlan">Payment Plan</option>
-                            <option value="AccountCredit">Account Credit</option>
+                            @if (countryCode == CountryCode.SE)
+                            {
+                                <option value="AccountCredit">Account Credit</option>
+                            }
                         }
                     </select>
                 </div>
@@ -352,5 +439,49 @@
             visibilityInput.value = isVisible;
             visibilityForm.submit();
         });
+
+        document.getElementById("toggleWebpayConfig").addEventListener("click", function () {
+            var configDiv = document.getElementById("webpayConfig");
+            if (configDiv.style.display === "none" || configDiv.style.display === "") {
+                configDiv.style.display = "block";
+            } else {
+                configDiv.style.display = "none";
+            }
+        });
+
+        document.getElementById("isCompany").addEventListener("change", function () {
+            var ssnInput = document.getElementById("ssn");
+            var privatePlaceholder = ssnInput.getAttribute("data-private-placeholder");
+            var companyPlaceholder = ssnInput.getAttribute("data-company-placeholder");
+
+            if (this.checked) {
+                ssnInput.setAttribute("placeholder", companyPlaceholder);
+            } else {
+                ssnInput.setAttribute("placeholder", privatePlaceholder);
+            }
+        });
+
+        function acceptPlaceholderOnEnter(inputElem) {
+            inputElem.addEventListener("keydown", function(e) {
+                //if (e.key === "Enter") {
+                if (e.key === "Tab") {
+                    if (!this.value.trim()) {
+                        this.value = this.getAttribute("placeholder");
+                    }
+                    //e.preventDefault();
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var ssnInput = document.getElementById("ssn");
+            var emailInput = document.getElementById("emailAddress");
+            var phoneInput = document.getElementById("phoneNumber");
+            // Attach listeners
+            acceptPlaceholderOnEnter(ssnInput);
+            acceptPlaceholderOnEnter(emailInput);
+            acceptPlaceholderOnEnter(phoneInput);
+        });
+
     </script>
 }
