@@ -1,19 +1,56 @@
 ﻿@{
     ViewData["Title"] = "Checkout";
     var isCompany = TempData["IsCompany"] != null && Convert.ToBoolean(TempData["IsCompany"]);
-    var testCustomers = new List<dynamic>
+
+    var country = TempData["CountryId"] != null ? TempData["CountryId"].ToString() : "SE";
+    var testCustomers = new List<dynamic>();
+
+    if(country == "NO")
     {
-        new { Result = "Approved", PersonOrOrgNr = "4605092222", CustomerType = "Private", Description = "Credit check successful." },
-        new { Result = "Denied", PersonOrOrgNr = "4610081111", CustomerType = "Private", Description = "Credit not approved; order can still be placed." },
-        new { Result = "Abuse", PersonOrOrgNr = "4606082222", CustomerType = "Private", Description = "Flagged for potential fraud." },
-        new { Result = "Limit", PersonOrOrgNr = "4611071111", CustomerType = "Private", Description = "Credit limit reached." },
-        new { Result = "Approved", PersonOrOrgNr = "4608142222", CustomerType = "Company", Description = "Credit check successful." },
-        new { Result = "Denied", PersonOrOrgNr = "4608302222", CustomerType = "Company", Description = "Credit not approved; order can still be placed." },
-        new { Result = "Abuse", PersonOrOrgNr = "4609191111", CustomerType = "Company", Description = "Flagged for potential fraud." },
-        new { Result = "Limit", PersonOrOrgNr = "4506172222", CustomerType = "Company", Description = "Credit limit reached." }
-    };
+        testCustomers = new List<dynamic>
+        {
+            new { Result = "Approved", PersonOrOrgNr = "17054512066", CustomerType = "Private", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "14077421433", CustomerType = "Private", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "30036549854", CustomerType = "Private", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "22084419684", CustomerType = "Private", Description = "Credit limit reached." },
+            new { Result = "Approved", PersonOrOrgNr = "923313850", CustomerType = "Company", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "842852102", CustomerType = "Company", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "931024280", CustomerType = "Company", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "812345672", CustomerType = "Company", Description = "Credit limit reached." }
+        };
+    }
+    else if(country == "FI")
+    {
+        testCustomers = new List<dynamic>
+        {
+            new { Result = "Approved", PersonOrOrgNr = "160264-999N", CustomerType = "Private", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "111248-999C", CustomerType = "Private", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "261295-9985", CustomerType = "Private", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "261295-9985", CustomerType = "Private", Description = "Credit limit reached." },
+            new { Result = "Approved", PersonOrOrgNr = "9999999-2", CustomerType = "Company", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "8888888-3", CustomerType = "Company", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "7777777-4", CustomerType = "Company", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "6666666-5", CustomerType = "Company", Description = "Credit limit reached." }
+        };
+    }
+    else
+    {
+        testCustomers = new List<dynamic>
+        {
+            new { Result = "Approved", PersonOrOrgNr = "4605092222", CustomerType = "Private", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "4610081111", CustomerType = "Private", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "4606082222", CustomerType = "Private", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "4611071111", CustomerType = "Private", Description = "Credit limit reached." },
+            new { Result = "Approved", PersonOrOrgNr = "4608142222", CustomerType = "Company", Description = "Credit check successful." },
+            new { Result = "Denied", PersonOrOrgNr = "4608302222", CustomerType = "Company", Description = "Credit not approved; order can still be placed." },
+            new { Result = "Abuse", PersonOrOrgNr = "4609191111", CustomerType = "Company", Description = "Flagged for potential fraud." },
+            new { Result = "Limit", PersonOrOrgNr = "4506172222", CustomerType = "Company", Description = "Credit limit reached." }
+        };
+    }
+
     var isVisible = TempData["IsTestCustomersVisible"] == null ? true : TempData["IsTestCustomersVisible"].ToString()?.ToLower() == "true";
     var useBankID = TempData["UseBankID"] != null ? Convert.ToBoolean(TempData["UseBankID"]) : false;
+    var useKalp = TempData["UseKalp"] != null ? Convert.ToBoolean(TempData["UseKalp"]) : false;
 }
 
 <div class="container mt-4">
@@ -50,6 +87,16 @@
                 <input type="checkbox" class="form-check-input" id="useBankID" name="useBankIDInput" value="true"
                        @(useBankID ? "checked" : "") onchange="this.form.submit()" />
                 <label class="form-check-label" for="useBankID">Use BankID</label>
+            </div>
+        </form>
+    </div>
+
+    <div class="use-kalp-container" style="margin-top: 20px; margin-bottom: 20px;">
+        <form id="toggleKalpForm" method="post" action="/CheckOut/UpdateUseKalp">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="useKalp" name="useKalpInput" value="true"
+                       @(useKalp ? "checked" : "") onchange="this.form.submit()" />
+                <label class="form-check-label" for="useKalp">Use Kalp</label>
             </div>
         </form>
     </div>
