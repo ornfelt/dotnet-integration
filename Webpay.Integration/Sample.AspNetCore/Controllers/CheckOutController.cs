@@ -6,9 +6,15 @@ using Sample.AspNetCore.Models;
 using Sample.AspNetCore.Webpay;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Net.Http;
+using System.Security;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Webpay.Integration;
 using Webpay.Integration.Util.Constant;
 using Webpay.Integration.Util.Testing;
@@ -401,20 +407,106 @@ public class CheckOutController : Controller
         return View();
     }
 
-    // TODO: fix PDF for Norway
     [HttpGet]
-    public IActionResult GetCreditAgreementPdf(string paymentOption, string country)
+    public async Task<IActionResult> GetCreditAgreementPdf(string paymentOption, string country)
     {
-        // TODO: locate the proper PDF bytes for NO + Invoice
-        // This is just a placeholder demonstrating returning a PDF.
-        // byte[] pdfBytes = System.IO.File.ReadAllBytes("wwwroot/pdfs/kredittavtale_no.pdf");
-        // return File(pdfBytes, "application/pdf", "kredittavtale.pdf");
+        if (!country.Equals("NO", StringComparison.OrdinalIgnoreCase))
+            //return NotFound();
+            return BadRequest("Unsupported country for credit agreement PDF.");
 
-        // For now, return 404 if you haven't wired it yet:
-        return NotFound();
+        var countryCode = _marketService.CountryId.GetCountryCode();
+        var clientNumber = Config.GetClientNumber(PaymentType.INVOICE, countryCode);
+        var username = Config.GetUsername(PaymentType.INVOICE, countryCode);
+        var password = Config.GetPassword(PaymentType.INVOICE, countryCode);
+
+        var addressDataJson = TempData.Peek("AddressData") as string;
+        if (string.IsNullOrWhiteSpace(addressDataJson))
+            return BadRequest("Address data is missing.");
+
+        var addresses = JsonSerializer.Deserialize<CustomerAddress[]>(addressDataJson);
+        if (addresses == null || addresses.Length == 0)
+            return BadRequest("No addresses available.");
+
+        var a = addresses[SelectedAddressIndex];
+
+        var fullName = !string.IsNullOrWhiteSpace(a.LegalName) ? a.LegalName : $"{(a.FirstName).Trim()} {(a.LastName).Trim()}".Trim();
+        var street = $"{a.AddressLine1} {a.AddressLine2 ?? ""}".Trim();
+        var postal = !string.IsNullOrWhiteSpace(a.Zipcode) ? a.Zipcode : a.Postcode.ToString();
+        var city = a.Postarea;
+        var nationalId = a.SecurityNumber ?? "";
+        var totalAmount = _cartService.CartLines.Sum(line => line.CalculateTotal());
+
+        string Esc(string s) => SecurityElement.Escape(s ?? "");
+
+        var asmxUrl = "http://localhost:54009/SveaWebPay.asmx";
+        var soapAction = "https://webservices.sveaekonomi.se/webpay/GetCreditAgreementPdf";
+
+        var orderCreatedIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        var totalAmountStr = totalAmount.ToString(CultureInfo.InvariantCulture);
+
+        var soapEnvelope = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" xmlns:web=""https://webservices.sveaekonomi.se/webpay"">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <web:GetCreditAgreementPdf>
+      <web:request>
+        <web:Auth>
+          <web:ClientNumber>{Esc(clientNumber.ToString())}</web:ClientNumber>
+          <web:Username>{Esc(username)}</web:Username>
+          <web:Password>{Esc(password)}</web:Password>
+        </web:Auth>
+        <web:CountryCode>{Esc(countryCode.ToString())}</web:CountryCode>
+        <web:FullName>{Esc(fullName)}</web:FullName>
+        <web:StreetAddress>{Esc(street)}</web:StreetAddress>
+        <web:PostalCode>{Esc(postal)}</web:PostalCode>
+        <web:City>{Esc(city)}</web:City>
+        <web:OrderCreatedDate>{orderCreatedIso}</web:OrderCreatedDate>
+        <web:TotalAmount>{totalAmountStr}</web:TotalAmount>
+        <web:NationalId>{Esc(nationalId)}</web:NationalId>
+      </web:request>
+    </web:GetCreditAgreementPdf>
+  </soapenv:Body>
+</soapenv:Envelope>";
+
+        using var http = new HttpClient();
+        var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
+        content.Headers.Add("SOAPAction", $"\"{soapAction}\"");
+
+        var resp = await http.PostAsync(asmxUrl, content);
+        if (!resp.IsSuccessStatusCode)
+            return StatusCode((int)resp.StatusCode, await resp.Content.ReadAsStringAsync());
+
+        var xml = await resp.Content.ReadAsStringAsync();
+
+        // Parse base64 PDF from SOAP response
+        var base64 = ExtractXmlValue(xml, "FileBinaryDataBase64");
+        if (string.IsNullOrWhiteSpace(base64))
+            return NotFound("No PDF returned from ASMX.");
+
+        byte[] pdfBytes;
+        try { pdfBytes = Convert.FromBase64String(base64); }
+        catch { return BadRequest("Invalid base64 PDF in ASMX response."); }
+
+        return File(pdfBytes, "application/pdf", "kredittavtale.pdf");
     }
 
     // Helpers
+    private static string ExtractXmlValue(string xml, string elementName)
+    {
+        try
+        {
+            var doc = XDocument.Parse(xml);
+            var el = doc.Descendants().FirstOrDefault(x => x.Name.LocalName == elementName);
+            return el?.Value;
+        }
+        catch
+        {
+            // Fallback regex
+            var m = Regex.Match(xml, $"<{elementName}>(.*?)</{elementName}>", RegexOptions.Singleline);
+            return m.Success ? System.Net.WebUtility.HtmlDecode(m.Groups[1].Value) : null;
+        }
+    }
+
     private void SaveTempData()
     {
         TempData["IsTestCustomersVisible"] = IsTestCustomersVisible;
