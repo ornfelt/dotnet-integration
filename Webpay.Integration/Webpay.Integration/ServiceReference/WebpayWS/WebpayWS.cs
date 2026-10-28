@@ -630,6 +630,18 @@ namespace WebpayWS
         
         private decimal notificationFeeField;
         
+        private int contractLengthInMonthsField;
+        
+        private int numberOfInterestFreeMonthsField;
+        
+        private int numberOfPaymentFreeMonthsField;
+        
+        private decimal monthlyAmountField;
+        
+        private decimal totalAmountToPayField;
+        
+        private decimal effectiveInterestField;
+        
         /// <remarks/>
         [System.Xml.Serialization.XmlElementAttribute(Order=0)]
         public long CampaignCode
@@ -739,6 +751,90 @@ namespace WebpayWS
             set
             {
                 this.notificationFeeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=8)]
+        public int ContractLengthInMonths
+        {
+            get
+            {
+                return this.contractLengthInMonthsField;
+            }
+            set
+            {
+                this.contractLengthInMonthsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=9)]
+        public int NumberOfInterestFreeMonths
+        {
+            get
+            {
+                return this.numberOfInterestFreeMonthsField;
+            }
+            set
+            {
+                this.numberOfInterestFreeMonthsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=10)]
+        public int NumberOfPaymentFreeMonths
+        {
+            get
+            {
+                return this.numberOfPaymentFreeMonthsField;
+            }
+            set
+            {
+                this.numberOfPaymentFreeMonthsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=11)]
+        public decimal MonthlyAmount
+        {
+            get
+            {
+                return this.monthlyAmountField;
+            }
+            set
+            {
+                this.monthlyAmountField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=12)]
+        public decimal TotalAmountToPay
+        {
+            get
+            {
+                return this.totalAmountToPayField;
+            }
+            set
+            {
+                this.totalAmountToPayField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=13)]
+        public decimal EffectiveInterest
+        {
+            get
+            {
+                return this.effectiveInterestField;
+            }
+            set
+            {
+                this.effectiveInterestField = value;
             }
         }
     }
@@ -937,6 +1033,9 @@ namespace WebpayWS
         
         /// <remarks/>
         Kivra,
+        
+        /// <remarks/>
+        Sms,
         
         /// <remarks/>
         Omni20,
@@ -6064,6 +6163,22 @@ namespace WebpayWS
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="https://webservices.sveaekonomi.se/webpay")]
     public partial class GetAccountCreditParamsEuRequest : BasicRequest
     {
+        
+        private System.Nullable<decimal> amountField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true, Order=0)]
+        public System.Nullable<decimal> Amount
+        {
+            get
+            {
+                return this.amountField;
+            }
+            set
+            {
+                this.amountField = value;
+            }
+        }
     }
     
     /// <remarks/>

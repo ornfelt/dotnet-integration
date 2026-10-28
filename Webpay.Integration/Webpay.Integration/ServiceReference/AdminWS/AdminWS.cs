@@ -2994,6 +2994,9 @@ namespace AdminWS
         
         [System.Runtime.Serialization.EnumMemberAttribute()]
         Kivra = 17,
+
+        [System.Runtime.Serialization.EnumMemberAttribute()]
+        Sms = 18,
         
         [System.Runtime.Serialization.EnumMemberAttribute()]
         Omni20 = 20,
