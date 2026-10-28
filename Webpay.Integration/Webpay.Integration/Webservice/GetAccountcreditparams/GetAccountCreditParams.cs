@@ -11,6 +11,7 @@ public class GetAccountCreditParams
 {
     protected ServiceSoapClient _soapsc;
     private CountryCode _countryCode;
+    private decimal? _amount;
     private readonly IConfigurationProvider _config;
 
     public GetAccountCreditParams(IConfigurationProvider config)
@@ -26,6 +27,12 @@ public class GetAccountCreditParams
     public GetAccountCreditParams SetCountryCode(CountryCode countryCode)
     {
         _countryCode = countryCode;
+        return this;
+    }
+
+    public GetAccountCreditParams SetAmount(decimal amount)
+    {
+        _amount = amount;
         return this;
     }
 
@@ -61,7 +68,8 @@ public class GetAccountCreditParams
 
         var request = new GetAccountCreditParamsEuRequest
         {
-            Auth = GetStoreAuthorization()
+            Auth = GetStoreAuthorization(),
+            Amount = _amount
         };
 
         return request;

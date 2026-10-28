@@ -350,6 +350,7 @@ public class CheckOutController : Controller
                     var accountCreditParams = await WebpayConnection
                         .GetAccountCreditParams(Config)
                         .SetCountryCode(_marketService.CountryId.GetCountryCode())
+                        .SetAmount(totalAmount)
                         .DoRequestAsync();
 
                     if (accountCreditParams.ResultCode != 0)
